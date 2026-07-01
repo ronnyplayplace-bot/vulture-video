@@ -326,6 +326,24 @@
 
   .result-meta strong { color: var(--text); }
 
+  /* SUPPORT */
+  .support-card { padding: 14px 16px; }
+  .support-head { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+  .support-head > span:first-child { font-weight:700; color:var(--accent); font-size:13px; }
+  .support-sub { color:var(--muted); font-size:12px; }
+  .support-game { display:inline-block; margin-bottom:12px; color:var(--text); font-size:13px;
+    text-decoration:none; border-bottom:1px dotted var(--border); }
+  .support-game:hover { color:var(--accent); border-color:var(--accent); }
+  .support-game b { color:var(--accent); }
+  .tip-row { display:flex; align-items:center; gap:8px; margin-top:6px; }
+  .tip-label { font-size:11px; font-weight:700; color:var(--accent); min-width:42px; }
+  .tip-row code { flex:1; font-family:'Consolas',monospace; font-size:11px; color:var(--muted);
+    background:var(--surface2); border:1px solid var(--border); border-radius:6px;
+    padding:6px 8px; overflow-x:auto; white-space:nowrap; }
+  .tip-row button { background:var(--surface2); border:1px solid var(--border); color:var(--muted);
+    font-size:11px; padding:6px 10px; border-radius:6px; cursor:pointer; white-space:nowrap; }
+  .tip-row button:hover { border-color:var(--accent); color:var(--accent); }
+
   footer { color: var(--muted); font-size: 11px; text-align: center; margin-top: 28px; line-height: 1.7; }
   footer a { color: var(--muted); text-decoration: none; border-bottom: 1px dotted var(--border); }
 
@@ -339,6 +357,18 @@
   <h1>Vulture <span>Video</span></h1>
   <p>Prompt or image → video, via OpenRouter. Bring your own key.</p>
 </header>
+
+<!-- SUPPORT -->
+<div class="card support-card">
+  <div class="support-head">
+    <span>♥ Support</span>
+    <span class="support-sub">Free &amp; open — if it saved you time, a tip keeps it going. 🙏</span>
+  </div>
+  <a class="support-game" href="https://store.steampowered.com/app/4859700/By_My_Side/" target="_blank" rel="noopener">🎮 Or buy our game — <b>By My Side</b> on Steam →</a>
+  <div class="tip-row"><span class="tip-label">BTC</span><code>37W7Djk14P9kw3Gx3zWLNXpTyRcSJfrwSe</code><button onclick="copyTip(this,'37W7Djk14P9kw3Gx3zWLNXpTyRcSJfrwSe')">copy</button></div>
+  <div class="tip-row"><span class="tip-label">ETH</span><code>0x30d7d100fe6606a0860786dacb975c7f7723852c</code><button onclick="copyTip(this,'0x30d7d100fe6606a0860786dacb975c7f7723852c')">copy</button></div>
+  <div class="tip-row"><span class="tip-label">USDT</span><code>0x30d7d100fe6606a0860786dacb975c7f7723852c</code><button onclick="copyTip(this,'0x30d7d100fe6606a0860786dacb975c7f7723852c')">copy</button></div>
+</div>
 
 <!-- MODEL SELECTOR -->
 <div class="card">
@@ -612,6 +642,14 @@ function saveKey() {
     input.placeholder = '✓ Saved!';
     setTimeout(() => input.placeholder = 'sk-or-v1-...', 1800);
   }
+}
+
+function copyTip(btn, val) {
+  navigator.clipboard.writeText(val).then(() => {
+    const t = btn.textContent;
+    btn.textContent = 'copied ✓';
+    setTimeout(() => btn.textContent = t, 1400);
+  }).catch(() => {});
 }
 
 // ── Log ────────────────────────────────────────────────────────────────
