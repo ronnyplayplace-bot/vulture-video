@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vulture Video — AI Video Generator</title>
+<link rel="icon" type="image/png" href="logo.png">
 <style>
   :root {
     --bg: #0B0D12;
@@ -35,6 +36,8 @@
   }
 
   header { text-align: center; margin-bottom: 28px; }
+  header .logo { height: 76px; width: auto; display: block; margin: 0 auto 8px;
+    filter: drop-shadow(0 4px 18px rgba(124,108,255,0.35)); }
   header h1 { font-size: 22px; font-weight: 700; letter-spacing: 0.04em; }
   header h1 span { color: var(--accent); }
   header p { color: var(--muted); font-size: 13px; margin-top: 4px; }
@@ -332,7 +335,8 @@
 <body>
 
 <header>
-  <h1>🦅 Vulture <span>Video</span></h1>
+  <img src="logo.png" alt="Vulture Video" class="logo">
+  <h1>Vulture <span>Video</span></h1>
   <p>Prompt or image → video, via OpenRouter. Bring your own key.</p>
 </header>
 
