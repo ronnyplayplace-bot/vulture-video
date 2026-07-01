@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vulture Video — AI Video Generator</title>
+<style>
+  :root {
+    --bg: #0B0D12;
+    --surface: #13161E;
+    --surface2: #1C2030;
+    --border: #2A2F3F;
+    --accent: #7C6CFF;
+    --accent-warm: #E8934A;
+    --text: #DDE3F0;
+    --muted: #6B7491;
+    --success: #4CAF84;
+    --error: #E05C5C;
+    --radius: 10px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 16px;
+    line-height: 1.5;
+  }
+
+  header { text-align: center; margin-bottom: 28px; }
+  header h1 { font-size: 22px; font-weight: 700; letter-spacing: 0.04em; }
+  header h1 span { color: var(--accent); }
+  header p { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 14px;
+    width: 100%;
+    max-width: 680px;
+  }
+
+  .card-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  /* MODEL SELECTOR CARDS */
+  .model-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .model-card {
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: var(--surface2);
+    position: relative;
+  }
+
+  .model-card:hover { border-color: #3d4d70; }
+
+  .model-card.selected {
+    border-color: var(--accent);
+    background: rgba(124,108,255,0.09);
+  }
+
+  .model-card .model-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+
+  .model-card .model-by {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .model-card .model-cost {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .model-card .model-cost-label {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 1px;
+  }
+
+  .model-card .model-cost-per-sec {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .model-card .check {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: #fff;
+  }
+
+  .model-card.selected .check { display: flex; }
+
+  .cheapest-badge {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: rgba(76,175,132,0.15);
+    color: var(--success);
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+
+  /* DROP ZONE */
+  .dropzone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    background: var(--surface2);
+  }
+
+  .dropzone:hover, .dropzone.drag-over {
+    border-color: var(--accent);
+    background: rgba(124,108,255,0.06);
+  }
+
+  .dropzone input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+
+  .dropzone .hint { color: var(--muted); font-size: 13px; }
+  .dropzone .hint strong { color: var(--accent); }
+
+  .image-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .image-thumb {
+    position: relative;
+    aspect-ratio: 16/9;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+
+  .image-thumb.selected { border-color: var(--accent); }
+  .image-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  .image-thumb .remove {
+    position: absolute; top: 3px; right: 3px;
+    background: rgba(0,0,0,0.7); border: none; color: #fff;
+    width: 18px; height: 18px; border-radius: 50%; font-size: 11px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+
+  .image-thumb .badge {
+    position: absolute; bottom: 3px; left: 3px;
+    background: var(--accent); color: #fff; font-size: 9px; font-weight: 700;
+    padding: 1px 5px; border-radius: 3px; letter-spacing: 0.05em;
+  }
+
+  .mode-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; padding: 3px 8px; border-radius: 4px;
+    margin-left: 8px; vertical-align: middle;
+  }
+
+  .mode-badge.img { background: rgba(124,108,255,0.15); color: var(--accent); }
+  .mode-badge.txt { background: rgba(76,175,132,0.15); color: var(--success); }
+
+  textarea {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); padding: 12px; font-size: 13px;
+    font-family: inherit; resize: vertical; min-height: 80px; outline: none;
+    transition: border-color 0.2s; line-height: 1.6;
+  }
+
+  textarea:focus { border-color: var(--accent); }
+
+  .prompt-presets { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+
+  .preset-btn {
+    background: var(--surface2); border: 1px solid var(--border); color: var(--muted);
+    font-size: 11px; padding: 4px 10px; border-radius: 20px; cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .preset-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .settings-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  select, input[type="text"], input[type="password"] {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); padding: 10px 12px; font-size: 13px;
+    font-family: inherit; outline: none; transition: border-color 0.2s;
+  }
+
+  select:focus, input:focus { border-color: var(--accent); }
+
+  .api-row { display: flex; gap: 8px; align-items: center; }
+  .api-row input { flex: 1; }
+
+  .save-btn {
+    background: var(--surface2); border: 1px solid var(--border); color: var(--muted);
+    padding: 10px 14px; border-radius: 8px; cursor: pointer; font-size: 12px;
+    white-space: nowrap; transition: all 0.15s;
+  }
+
+  .save-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .hint-line { font-size: 11px; color: var(--muted); margin-top: 8px; }
+  .hint-line a { color: var(--accent); text-decoration: none; }
+  .hint-line a:hover { text-decoration: underline; }
+
+  .generate-btn {
+    width: 100%; max-width: 680px; padding: 16px; background: var(--accent);
+    border: none; border-radius: var(--radius); color: #fff; font-size: 15px;
+    font-weight: 700; letter-spacing: 0.05em; cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s; margin-bottom: 14px;
+  }
+
+  .generate-btn:hover:not(:disabled) { opacity: 0.85; }
+  .generate-btn:active:not(:disabled) { transform: scale(0.99); }
+  .generate-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .status-card, .result-card { display: none; width: 100%; max-width: 680px; }
+  .status-card.visible, .result-card.visible { display: block; }
+
+  .status-bar {
+    display: flex; align-items: center; gap: 10px; padding: 14px 18px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); margin-bottom: 10px;
+  }
+
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .dot.pending { background: var(--accent-warm); animation: pulse 1.2s infinite; }
+  .dot.done { background: var(--success); }
+  .dot.error { background: var(--error); }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .status-text { flex: 1; font-size: 13px; }
+  .status-time { color: var(--muted); font-size: 12px; }
+
+  .log {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px; font-family: 'Consolas','Courier New',monospace; font-size: 11px;
+    color: var(--muted); max-height: 110px; overflow-y: auto; line-height: 1.8;
+  }
+
+  .log .ok { color: var(--success); }
+  .log .err { color: var(--error); }
+  .log .info { color: var(--accent); }
+
+  .video-wrap { background: #000; border-radius: var(--radius); overflow: hidden; margin-bottom: 12px; }
+  .video-wrap video { width: 100%; display: block; max-height: 480px; object-fit: contain; }
+
+  .result-actions { display: flex; gap: 10px; }
+
+  .dl-btn {
+    flex: 1; padding: 12px; background: var(--success); border: none;
+    border-radius: 8px; color: #fff; font-size: 14px; font-weight: 700;
+    cursor: pointer; transition: opacity 0.2s;
+  }
+
+  .dl-btn:hover { opacity: 0.85; }
+
+  .again-btn {
+    padding: 12px 20px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); font-size: 14px; cursor: pointer;
+    transition: border-color 0.2s;
+  }
+
+  .again-btn:hover { border-color: var(--accent); }
+
+  .result-meta {
+    display: flex; flex-wrap: wrap; gap: 12px; padding: 10px 14px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; font-size: 12px; color: var(--muted); margin-bottom: 12px;
+  }
+
+  .result-meta strong { color: var(--text); }
+
+  footer { color: var(--muted); font-size: 11px; text-align: center; margin-top: 28px; line-height: 1.7; }
+  footer a { color: var(--muted); text-decoration: none; border-bottom: 1px dotted var(--border); }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🦅 Vulture <span>Video</span></h1>
+  <p>Prompt or image → video, via OpenRouter. Bring your own key.</p>
+</header>
+
+<!-- MODEL SELECTOR -->
+<div class="card">
+  <div class="card-title">🤖 Model &amp; cost</div>
+
+  <div class="model-grid" id="modelGrid">
+    <!-- filled by JS -->
+  </div>
+
+  <hr class="divider">
+
+  <div class="settings-row">
+    <div>
+      <div class="card-title" style="margin-bottom:6px;">Format</div>
+      <select id="aspect" onchange="updateAllCosts()">
+        <option value="9:16">9:16 — TikTok / Reels / Shorts</option>
+        <option value="16:9">16:9 — YouTube / landscape</option>
+        <option value="1:1">1:1 — Instagram square</option>
+      </select>
+    </div>
+    <div>
+      <div class="card-title" style="margin-bottom:6px;">Duration</div>
+      <select id="duration" onchange="updateAllCosts()">
+        <option value="5">5 sec</option>
+        <option value="8" selected>8 sec</option>
+        <option value="10">10 sec</option>
+        <option value="15">15 sec</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<!-- IMAGES -->
+<div class="card">
+  <div class="card-title">
+    📸 Reference image (first frame) — optional
+    <span id="modeBadge" class="mode-badge txt">✦ Text-to-Video</span>
+  </div>
+
+  <div class="dropzone" id="dropzone">
+    <input type="file" id="fileInput" accept="image/*" multiple>
+    <div style="font-size:28px;margin-bottom:6px;">🖼️</div>
+    <div class="hint">Drag &amp; drop or <strong>click</strong> — an image becomes the first frame</div>
+  </div>
+
+  <div class="image-grid" id="imageGrid"></div>
+</div>
+
+<!-- PROMPT -->
+<div class="card">
+  <div class="card-title">📝 Prompt</div>
+  <textarea id="prompt">Cinematic slow dolly shot through a sunlit forest at golden hour, volumetric light rays through the trees, shallow depth of field, gentle camera movement, ultra-realistic, film grain. No text, no UI.</textarea>
+  <div class="prompt-presets">
+    <button class="preset-btn" onclick="setPreset('cinematic')">🎬 Cinematic</button>
+    <button class="preset-btn" onclick="setPreset('nature')">🏔️ Nature</button>
+    <button class="preset-btn" onclick="setPreset('product')">📦 Product</button>
+    <button class="preset-btn" onclick="setPreset('portrait')">👤 Portrait</button>
+    <button class="preset-btn" onclick="setPreset('neon')">🌃 Neon City</button>
+    <button class="preset-btn" onclick="setPreset('abstract')">🌀 Abstract</button>
+  </div>
+</div>
+
+<!-- API KEY -->
+<div class="card">
+  <div class="card-title">🔑 OpenRouter API key</div>
+  <div class="api-row">
+    <input type="password" id="apiKey" placeholder="sk-or-v1-..." autocomplete="off">
+    <button class="save-btn" onclick="saveKey()">💾 Save</button>
+  </div>
+  <div class="hint-line">
+    Your key is stored only in this browser (localStorage) and sent straight to OpenRouter —
+    never to anyone else. Get one at
+    <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">openrouter.ai/keys</a>
+    and add a little credit.
+  </div>
+</div>
+
+<!-- GENERATE -->
+<button class="generate-btn" id="generateBtn" onclick="generate()">⚡ GENERATE VIDEO</button>
+
+<!-- STATUS -->
+<div class="status-card" id="statusCard">
+  <div class="status-bar">
+    <div class="dot pending" id="statusDot"></div>
+    <div class="status-text" id="statusText">Starting…</div>
+    <div class="status-time" id="statusTime"></div>
+  </div>
+  <div class="log" id="log"></div>
+</div>
+
+<!-- RESULT -->
+<div class="result-card" id="resultCard">
+  <div class="result-meta" id="resultMeta"></div>
+  <div class="video-wrap">
+    <video id="videoPlayer" controls autoplay loop></video>
+  </div>
+  <div class="result-actions">
+    <button class="dl-btn" id="dlBtn" onclick="downloadVideo()">⬇️ Download MP4</button>
+    <button class="again-btn" onclick="resetUI()">🔄 Again</button>
+  </div>
+</div>
+
+<footer>
+  🦅 <strong>Vulture Video</strong> · a single self-contained HTML — open it locally, no server, no build.<br>
+  Not affiliated with OpenRouter. You pay OpenRouter directly for what you generate.
+</footer>
+
+<script>
+// ── Models ─────────────────────────────────────────────────────────────
+// Prices are approximate and can change on OpenRouter — always check your dashboard.
+const MODELS = [
+  {
+    id: 'bytedance/seedance-2.0-fast',
+    name: 'Seedance 2.0 Fast',
+    by: 'ByteDance',
+    ratePerSec: 0.0538,
+    note: 'Image-to-Video ✓',
+    cheapest: true
+  },
+  {
+    id: 'google/veo-3.1-fast',
+    name: 'Veo 3.1 Fast',
+    by: 'Google',
+    ratePerSec: 0.10,
+    note: 'Audio included ✓',
+    cheapest: false
+  },
+  {
+    id: 'x-ai/grok-imagine-video',
+    name: 'Grok Imagine Video',
+    by: 'xAI',
+    ratePerSec: 0.05,
+    note: 'Reference-to-Video ✓',
+    cheapest: false
+  },
+  {
+    id: 'kwaivgi/kling-v3.0-std',
+    name: 'Kling v3.0 Standard',
+    by: 'Kuaishou',
+    ratePerSec: 0.126,
+    note: 'Cinematic ✓',
+    cheapest: false
+  }
+];
+
+let selectedModel = 'bytedance/seedance-2.0-fast';
+
+function calcCost(model, dur) {
+  return (model.ratePerSec * dur).toFixed(2);
+}
+
+function buildModelGrid() {
+  const grid = document.getElementById('modelGrid');
+  grid.innerHTML = '';
+  const dur = parseInt(document.getElementById('duration')?.value || 8);
+
+  const costs = MODELS.map(m => parseFloat(calcCost(m, dur)));
+  const minCost = Math.min(...costs);
+
+  MODELS.forEach((m) => {
+    const cost = calcCost(m, dur);
+    const isSelected = m.id === selectedModel;
+    const isCheapest = parseFloat(cost) === minCost;
+
+    const div = document.createElement('div');
+    div.className = 'model-card' + (isSelected ? ' selected' : '');
+    div.innerHTML = `
+      <div class="check">✓</div>
+      <div class="model-name">${m.name}${isCheapest ? '<span class="cheapest-badge">Cheapest</span>' : ''}</div>
+      <div class="model-by">${m.by} · ${m.note}</div>
+      <div class="model-cost">$${cost}</div>
+      <div class="model-cost-label">for ${dur} seconds</div>
+      <div class="model-cost-per-sec">$${m.ratePerSec.toFixed(4)}/sec</div>
+    `;
+    div.addEventListener('click', () => {
+      selectedModel = m.id;
+      buildModelGrid();
+    });
+    grid.appendChild(div);
+  });
+}
+
+function updateAllCosts() { buildModelGrid(); }
+
+// ── Presets (generic) ──────────────────────────────────────────────────
+const PRESETS = {
+  cinematic: "Cinematic slow dolly shot, dramatic key lighting, shallow depth of field, subtle lens flare, film grain, moody atmosphere, hyper-detailed, 4K. No text, no UI.",
+  nature:    "Sweeping aerial drone shot over misty mountains at sunrise, golden light breaking through clouds, rivers below, smooth cinematic movement, ultra realistic. No text.",
+  product:   "Studio product shot on a clean seamless background, slow 360° rotation, soft key light and gentle rim light, glossy reflections, premium commercial look, macro detail.",
+  portrait:  "Cinematic close-up portrait, slow camera push-in, soft natural window light, creamy bokeh background, lifelike skin detail, shallow depth of field, gentle motion.",
+  neon:      "Neon-lit cyberpunk city street at night after rain, glowing signs reflecting in puddles, slow tracking shot, volumetric fog, vibrant teal and magenta, cinematic.",
+  abstract:  "Flowing abstract liquid shapes, iridescent metallic colors, smooth morphing motion, dark background, soft studio light, mesmerizing seamless loop, ultra smooth."
+};
+
+function setPreset(key) {
+  document.getElementById('prompt').value = PRESETS[key];
+}
+
+// ── Image upload ───────────────────────────────────────────────────────
+let images = [];
+let selectedIdx = 0;
+
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+dropzone.addEventListener('drop', e => { e.preventDefault(); dropzone.classList.remove('drag-over'); handleFiles(e.dataTransfer.files); });
+fileInput.addEventListener('change', e => handleFiles(e.target.files));
+
+function handleFiles(files) {
+  Array.from(files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      images.push({ name: file.name, dataUrl: e.target.result });
+      if (images.length === 1) selectedIdx = 0;
+      renderGrid();
+      updateModeBadge();
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderGrid() {
+  const grid = document.getElementById('imageGrid');
+  grid.innerHTML = '';
+  images.forEach((img, i) => {
+    const div = document.createElement('div');
+    div.className = 'image-thumb' + (i === selectedIdx ? ' selected' : '');
+    div.innerHTML = `
+      <img src="${img.dataUrl}">
+      ${i === selectedIdx ? '<span class="badge">FIRST FRAME</span>' : ''}
+      <button class="remove" onclick="removeImage(${i},event)">×</button>
+    `;
+    div.addEventListener('click', e => { if (!e.target.classList.contains('remove')) { selectedIdx = i; renderGrid(); } });
+    grid.appendChild(div);
+  });
+}
+
+function removeImage(i, e) {
+  e.stopPropagation();
+  images.splice(i, 1);
+  if (selectedIdx >= images.length) selectedIdx = Math.max(0, images.length - 1);
+  renderGrid();
+  updateModeBadge();
+}
+
+function updateModeBadge() {
+  const badge = document.getElementById('modeBadge');
+  if (images.length > 0) {
+    badge.className = 'mode-badge img';
+    badge.textContent = '🖼 Image-to-Video';
+  } else {
+    badge.className = 'mode-badge txt';
+    badge.textContent = '✦ Text-to-Video';
+  }
+}
+
+// ── API key ────────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  const k = localStorage.getItem('vulture_or_key');
+  if (k) document.getElementById('apiKey').value = k;
+  buildModelGrid();
+});
+
+function saveKey() {
+  const k = document.getElementById('apiKey').value.trim();
+  if (k) {
+    localStorage.setItem('vulture_or_key', k);
+    const input = document.getElementById('apiKey');
+    input.placeholder = '✓ Saved!';
+    setTimeout(() => input.placeholder = 'sk-or-v1-...', 1800);
+  }
+}
+
+// ── Log ────────────────────────────────────────────────────────────────
+function log(msg, type = '') {
+  const el = document.getElementById('log');
+  const line = document.createElement('div');
+  if (type) line.className = type;
+  line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+
+function setStatus(text, dotClass = 'pending') {
+  document.getElementById('statusText').textContent = text;
+  document.getElementById('statusDot').className = `dot ${dotClass}`;
+}
+
+let startTime = null;
+let timerInterval = null;
+
+function updateTimer() {
+  if (!startTime) return;
+  const secs = Math.round((Date.now() - startTime) / 1000);
+  document.getElementById('statusTime').textContent = `${secs}s`;
+}
+
+// ── Generate ───────────────────────────────────────────────────────────
+async function generate() {
+  const apiKey   = document.getElementById('apiKey').value.trim();
+  const prompt   = document.getElementById('prompt').value.trim();
+  const aspect   = document.getElementById('aspect').value;
+  const duration = parseInt(document.getElementById('duration').value);
+
+  if (!apiKey) { alert('Please enter your OpenRouter API key first!'); return; }
+  if (!prompt)  { alert('Please enter a prompt!'); return; }
+
+  document.getElementById('generateBtn').disabled = true;
+  document.getElementById('statusCard').className = 'status-card visible';
+  document.getElementById('resultCard').className = 'result-card';
+  document.getElementById('log').innerHTML = '';
+  startTime = Date.now();
+  timerInterval = setInterval(updateTimer, 1000);
+
+  try {
+    const modelObj = MODELS.find(m => m.id === selectedModel);
+    const cost = calcCost(modelObj, duration);
+
+    const body = { model: selectedModel, prompt, aspect_ratio: aspect, duration };
+
+    if (images.length > 0) {
+      body.frame_images = [{
+        type: 'image_url',
+        image_url: { url: images[selectedIdx].dataUrl },
+        frame_type: 'first_frame'
+      }];
+      log(`Mode: Image-to-Video (${images[selectedIdx].name})`, 'info');
+    } else {
+      log('Mode: Text-to-Video', 'info');
+    }
+
+    log(`Model: ${selectedModel}`);
+    log(`Format: ${aspect} · Duration: ${duration}s · Est. cost: ~$${cost}`);
+    setStatus('Submitting job…');
+
+    const res = await fetch('https://openrouter.ai/api/v1/videos', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://github.com/ronnyplayplace-bot/vulture-video',
+        'X-Title': 'Vulture Video'
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`HTTP ${res.status}: ${err}`);
+    }
+
+    const job = await res.json();
+    log(`✓ Job ID: ${job.id}`, 'ok');
+    setStatus('Job running — waiting for completion…');
+
+    await poll(job.polling_url, apiKey, duration);
+
+  } catch(err) {
+    clearInterval(timerInterval);
+    log(`ERROR: ${err.message}`, 'err');
+    setStatus('Error — see the log', 'error');
+    document.getElementById('generateBtn').disabled = false;
+  }
+}
+
+async function poll(pollingUrl, apiKey, duration) {
+  for (let i = 0; i < 80; i++) {
+    await sleep(10000);
+    const res = await fetch(pollingUrl, { headers: { 'Authorization': `Bearer ${apiKey}` } });
+    const data = await res.json();
+    const secs = Math.round((Date.now() - startTime) / 1000);
+    log(`[${secs}s] Status: ${data.status}`);
+    setStatus(`Status: ${data.status}…`);
+
+    if (data.status === 'completed') {
+      clearInterval(timerInterval);
+      const cost = data.usage?.cost?.toFixed(2) || '?';
+      log(`✓ Done! Actual cost: $${cost}`, 'ok');
+      setStatus('✓ Done!', 'done');
+      await showResult(data.unsigned_urls[0], apiKey, cost, duration);
+      return;
+    }
+
+    if (data.status === 'failed') {
+      clearInterval(timerInterval);
+      throw new Error(data.error || 'Generation failed');
+    }
+  }
+  clearInterval(timerInterval);
+  throw new Error('Timeout after ~13 minutes');
+}
+
+async function showResult(url, apiKey, cost, duration) {
+  const res = await fetch(url, { headers: { 'Authorization': `Bearer ${apiKey}` } });
+  const blob = await res.blob();
+  const blobUrl = URL.createObjectURL(blob);
+
+  document.getElementById('videoPlayer').src = blobUrl;
+
+  const aspect = document.getElementById('aspect').value;
+  const modelObj = MODELS.find(m => m.id === selectedModel);
+
+  document.getElementById('resultMeta').innerHTML = `
+    <span>💰 Cost: <strong>$${cost}</strong></span>
+    <span>⏱ Duration: <strong>${duration}s</strong></span>
+    <span>📐 Format: <strong>${aspect}</strong></span>
+    <span>🤖 Model: <strong>${modelObj?.name || selectedModel}</strong></span>
+  `;
+
+  document.getElementById('dlBtn').dataset.url = blobUrl;
+  document.getElementById('resultCard').className = 'result-card visible';
+  document.getElementById('generateBtn').disabled = false;
+}
+
+function downloadVideo() {
+  const url = document.getElementById('dlBtn').dataset.url;
+  if (!url) return;
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `vulture_video_${Date.now()}.mp4`;
+  a.click();
+}
+
+function resetUI() {
+  document.getElementById('statusCard').className = 'status-card';
+  document.getElementById('resultCard').className = 'result-card';
+  document.getElementById('generateBtn').disabled = false;
+  startTime = null;
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+</script>
+</body>
+</html>
