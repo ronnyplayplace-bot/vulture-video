@@ -44,3 +44,4 @@ That's it. It's one file.
 MIT — use it, change it, ship it. A ⭐ helps.
 
 Built by **Overlkd Studio**. Open to ideas and collaboration — open an issue. 🦅
+Built by **[Overlkd Studio](https://overlkd.com)** ([Ronny](https://www.linkedin.com/in/rfischer87)). Open to ideas, collaboration, and freelance work — open an issue. 🦅
